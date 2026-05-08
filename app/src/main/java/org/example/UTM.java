@@ -6,13 +6,20 @@ public class UTM {
     // Übergangsfunktion: Key = "state,symbol" -> Transition
     static Map<String, Transition> delta = new HashMap<>();
 
-    // Band als Liste von Symbolnummern (1=0, 2=1, 3=Blank)
+    // Band als Liste von Symbolnummern (1=0, 2=1, 3=Blank, ...)
     static List<Integer> tape = new ArrayList<>();
     static int head = 0;
+    static int leftPad = 0; // wieviele Blanks wurden links eingefuegt
     static int state = 1; // Startzustand q1
     static int steps = 0;
     static final int BLANK = 3; // X3 = Blank
 
+    // Bewegungs-Konvention: ggf. tauschen, falls dein Skript D1=R, D2=L verwendet
+    static final int MOVE_LEFT = 1;
+    static final int MOVE_RIGHT = 2;
+    static final int MOVE_NONE = 3;
+
+    // ---------- Hauptprogramm ----------
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
@@ -25,7 +32,7 @@ public class UTM {
         if (input.startsWith("d:")) {
             int n = Integer.parseInt(input.substring(2).trim());
             input = Integer.toBinaryString(n);
-            System.out.println("  -> Binär: " + input);
+            System.out.println("  -> Binaer: " + input);
         }
 
         System.out.print("Modus (s = Step, l = Lauf): ");
@@ -48,10 +55,7 @@ public class UTM {
             }
             boolean cont = step();
             if (stepMode) printStatus();
-            if (!cont) {
-                System.out.println("\n>>> Maschine haelt (keine passende Regel). <<<");
-                break;
-            }
+            if (!cont) break;
         }
 
         if (!stepMode) printStatus();
@@ -62,6 +66,7 @@ public class UTM {
         System.out.println("Band       : " + decodeTape());
     }
 
+    // ---------- Parser für die Kodierung ----------
     public static void parseEncoding(String code) {
         // Optionale Umrandung entfernen: '111' oder einzelnes '1' am Anfang/Ende
         if (code.startsWith("111")) code = code.substring(3);
@@ -86,6 +91,20 @@ public class UTM {
             int dm = blocks[4].length(); // Bewegung
             delta.put(qi + "," + xj, new Transition(qk, xl, dm));
         }
+
+        // Diagnostik: geparste Uebergangstabelle ausgeben
+        System.out.println("\nGeparste Uebergangstabelle:");
+        for (Map.Entry<String, Transition> e : delta.entrySet()) {
+            Transition t = e.getValue();
+            String[] key = e.getKey().split(",");
+            String moveStr = (t.move == MOVE_LEFT) ? "L"
+                : (t.move == MOVE_RIGHT) ? "R"
+                  : (t.move == MOVE_NONE) ? "N"
+                    : "?(" + t.move + ")";
+            System.out.println("  (q" + key[0] + ", X" + key[1] + ") -> (q"
+                + t.newState + ", X" + t.writeSym + ", " + moveStr + ")");
+        }
+        System.out.println();
     }
 
     // ---------- Eingabe auf das Band schreiben ----------
@@ -98,11 +117,12 @@ public class UTM {
         }
         if (tape.isEmpty()) tape.add(BLANK);
         head = 0;
+        leftPad = 0;
     }
 
     // ---------- Bandzugriff ----------
     static int read() {
-        while (head < 0) { tape.add(0, BLANK); head++; }
+        while (head < 0) { tape.add(0, BLANK); head++; leftPad++; }
         while (head >= tape.size()) tape.add(BLANK);
         return tape.get(head);
     }
@@ -112,15 +132,31 @@ public class UTM {
         tape.set(head, sym);
     }
 
+    // Logische Kopfposition relativ zum urspruenglichen Bandanfang
+    static int logicalHead() {
+        return head - leftPad;
+    }
+
     // ---------- Ein Berechnungsschritt ----------
     public static boolean step() {
         int sym = read();
         Transition t = delta.get(state + "," + sym);
-        if (t == null) return false; // keine Regel -> Halt
+        if (t == null) {
+            boolean stateHasAnyRule = delta.keySet().stream()
+                .anyMatch(k -> k.startsWith(state + ","));
+            if (!stateHasAnyRule) {
+                System.out.println("\n>>> Halt in Endzustand q" + state + " (Zustand hat keine Regeln). <<<");
+            } else {
+                System.out.println("\n>>> Halt: keine passende Regel fuer (q" + state + ", X" + sym + "). <<<");
+            }
+            return false;
+        }
         write(t.writeSym);
         state = t.newState;
-        if (t.move == 1) head--;        // L
-        else if (t.move == 2) head++;   // R
+        if (t.move == MOVE_LEFT) head--;
+        else if (t.move == MOVE_RIGHT) head++;
+        else if (t.move == MOVE_NONE) { /* keine Bewegung */ }
+        else System.out.println("Warnung: unbekannte Bewegung D" + t.move + " - Kopf bleibt stehen.");
         steps++;
         return true;
     }
@@ -130,12 +166,15 @@ public class UTM {
         System.out.println("---------------------------------------------");
         System.out.println("Schritt: " + steps);
         System.out.println("Zustand: q" + state);
-        System.out.println("Kopfposition: " + head);
+        System.out.println("Kopfposition: " + logicalHead());
 
-        // Ausschnitt: 15 vor und 15 nach dem Kopf
+        // Mindestens 15 Zellen vor und nach dem Kopf, plus gesamtes Band
+        int from = Math.min(head - 15, -2);
+        int to = Math.max(head + 15 + 1, tape.size() + 2);
+
         StringBuilder bandSb = new StringBuilder();
         StringBuilder ptrSb = new StringBuilder();
-        for (int i = head - 15; i <= head + 15; i++) {
+        for (int i = from; i < to; i++) {
             String s;
             if (i < 0 || i >= tape.size()) s = "_";
             else {
@@ -151,6 +190,7 @@ public class UTM {
         System.out.println("       " + ptrSb);
     }
 
+    // ---------- Ergebnis dekodieren ----------
     public static String decodeTape() {
         StringBuilder sb = new StringBuilder();
         for (int v : tape) {
