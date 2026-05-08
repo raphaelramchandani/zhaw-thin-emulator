@@ -6,14 +6,13 @@ public class UTM {
     // Übergangsfunktion: Key = "state,symbol" -> Transition
     static Map<String, Transition> delta = new HashMap<>();
 
-    // Band als Liste von Symbolnummern (1=0, 2=1, 3=Blank, ...)
+    // Band als Liste von Symbolnummern (1=0, 2=1, 3=Blank)
     static List<Integer> tape = new ArrayList<>();
     static int head = 0;
-    static int state = 1;       // Startzustand q1
+    static int state = 1; // Startzustand q1
     static int steps = 0;
     static final int BLANK = 3; // X3 = Blank
 
-    // ---------- Hauptprogramm ----------
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
@@ -21,12 +20,12 @@ public class UTM {
         System.out.print("TM-Kodierung eingeben: ");
         String code = scanner.nextLine().trim();
 
-        System.out.print("Eingabe (Binaer, z.B. 1011  oder  Dezimalzahl mit Praefix d:  z.B. d:5): ");
+        System.out.print("Eingabe (Binär, z.B. 1011  oder  Dezimal mit Präfix d:  z.B. d:5): ");
         String input = scanner.nextLine().trim();
         if (input.startsWith("d:")) {
             int n = Integer.parseInt(input.substring(2).trim());
             input = Integer.toBinaryString(n);
-            System.out.println("  -> Binaer: " + input);
+            System.out.println("  -> Binär: " + input);
         }
 
         System.out.print("Modus (s = Step, l = Lauf): ");
@@ -63,7 +62,6 @@ public class UTM {
         System.out.println("Band       : " + decodeTape());
     }
 
-    // ---------- Parser für die Kodierung ----------
     public static void parseEncoding(String code) {
         // Optionale Umrandung entfernen: '111' oder einzelnes '1' am Anfang/Ende
         if (code.startsWith("111")) code = code.substring(3);
@@ -153,7 +151,6 @@ public class UTM {
         System.out.println("       " + ptrSb);
     }
 
-    // ---------- Ergebnis dekodieren ----------
     public static String decodeTape() {
         StringBuilder sb = new StringBuilder();
         for (int v : tape) {
