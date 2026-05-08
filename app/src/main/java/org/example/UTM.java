@@ -6,15 +6,14 @@ public class UTM {
     // Übergangsfunktion: Key = "state,symbol" -> Transition
     static Map<String, Transition> delta = new HashMap<>();
 
-    // Band als Liste von Symbolnummern (1=0, 2=1, 3=Blank, ...)
+    // Band als Liste von Symbolnummern (1 = 0, 2 = 1, 3 = Blank, ...)
     static List<Integer> tape = new ArrayList<>();
     static int head = 0;
-    static int leftPad = 0; // wieviele Blanks wurden links eingefuegt
+    static int leftPad = 0; // wie viele Blanks wurden links eingefügt
     static int state = 1; // Startzustand q1
     static int steps = 0;
-    static final int BLANK = 3; // X3 = Blank
+    static final int BLANK = 3;
 
-    // Bewegungs-Konvention: ggf. tauschen, falls dein Skript D1=R, D2=L verwendet
     static final int MOVE_LEFT = 1;
     static final int MOVE_RIGHT = 2;
     static final int MOVE_NONE = 3;
@@ -32,7 +31,7 @@ public class UTM {
         if (input.startsWith("d:")) {
             int n = Integer.parseInt(input.substring(2).trim());
             input = Integer.toBinaryString(n);
-            System.out.println("  -> Binaer: " + input);
+            System.out.println("  -> Binär: " + input);
         }
 
         System.out.print("Modus (s = Step, l = Lauf): ");
@@ -49,7 +48,7 @@ public class UTM {
 
         while (steps < maxSteps) {
             if (stepMode) {
-                System.out.print("\n[Enter] = naechster Schritt, q = abbrechen: ");
+                System.out.print("\n[Enter] = nächster Schritt, q = abbrechen: ");
                 String in = scanner.nextLine();
                 if (in.equalsIgnoreCase("q")) break;
             }
@@ -92,8 +91,8 @@ public class UTM {
             delta.put(qi + "," + xj, new Transition(qk, xl, dm));
         }
 
-        // Diagnostik: geparste Uebergangstabelle ausgeben
-        System.out.println("\nGeparste Uebergangstabelle:");
+        // Diagnostik: geparste Übergangstabelle ausgeben
+        System.out.println("\nGeparste Übergangstabelle:");
         for (Map.Entry<String, Transition> e : delta.entrySet()) {
             Transition t = e.getValue();
             String[] key = e.getKey().split(",");
@@ -122,7 +121,7 @@ public class UTM {
 
     // ---------- Bandzugriff ----------
     static int read() {
-        while (head < 0) { tape.add(0, BLANK); head++; leftPad++; }
+        while (head < 0) { tape.addFirst(BLANK); head++; leftPad++; }
         while (head >= tape.size()) tape.add(BLANK);
         return tape.get(head);
     }
@@ -132,7 +131,7 @@ public class UTM {
         tape.set(head, sym);
     }
 
-    // Logische Kopfposition relativ zum urspruenglichen Bandanfang
+    // Logische Kopfposition relativ zum ursprünglichen Bandanfang
     static int logicalHead() {
         return head - leftPad;
     }
@@ -145,9 +144,9 @@ public class UTM {
             boolean stateHasAnyRule = delta.keySet().stream()
                 .anyMatch(k -> k.startsWith(state + ","));
             if (!stateHasAnyRule) {
-                System.out.println("\n>>> Halt in Endzustand q" + state + " (Zustand hat keine Regeln). <<<");
+                System.out.println("\n>>> Halt in Endzustand q" + state + " <<<");
             } else {
-                System.out.println("\n>>> Halt: keine passende Regel fuer (q" + state + ", X" + sym + "). <<<");
+                System.out.println("\n>>> Halt: keine passende Regel für (q" + state + ", X" + sym + "). <<<");
             }
             return false;
         }
@@ -168,7 +167,7 @@ public class UTM {
         System.out.println("Zustand: q" + state);
         System.out.println("Kopfposition: " + logicalHead());
 
-        // Mindestens 15 Zellen vor und nach dem Kopf, plus gesamtes Band
+        // Mindestens 15 Zellen vor und nach dem Kopf
         int from = Math.min(head - 15, -2);
         int to = Math.max(head + 15 + 1, tape.size() + 2);
 
